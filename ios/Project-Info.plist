@@ -45,5 +45,7 @@
     <string>App would like to access the camera.</string>
     <key>NSContactsUsageDescription</key>
     <string>App would like to read contacts from the Addressbook.</string>
+    <key>NSBluetoothPeripheralUsageDescription</key>
+    <string>App would like to use Bluetooth.</string>
 </dict>
 </plist>
