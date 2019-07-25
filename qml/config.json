@@ -1,6 +1,6 @@
 {
-  "title": "QR Scan",
-  "identifier": "net.vplay.demos.customlcqr",
+  "title": "QR Scan Live",
+  "identifier": "net.vplay.demos.customlcqrlive",
   "orientation": "portrait",
   "versioncode": 1,
   "versionname": "1.0.0",
