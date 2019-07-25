@@ -9,6 +9,11 @@ App {
   //  * Add plugins to monetize, analyze & improve your apps (available with the Pro Licenses)
   //licenseKey: "<generate one from https://felgo.com/licenseKey>"
 
+  onInitTheme: {
+//    Theme.colors.tintColor = "#a4c639"
+//    Theme.navigationBar.titleTextSize = sp(20)
+  }
+
   NavigationStack {
 
     ScannerPage {
