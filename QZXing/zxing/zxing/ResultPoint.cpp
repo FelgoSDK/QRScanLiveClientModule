@@ -42,7 +42,7 @@ float ResultPoint::getY() const {
   return posY_;
 }
 
-bool ResultPoint::equals(Ref<ResultPoint> other) {
+bool ResultPoint::equals(const Ref<ResultPoint> &other) {
   return posX_ == other->getX() && posY_ == other->getY();
 }
 
@@ -51,6 +51,9 @@ bool ResultPoint::equals(Ref<ResultPoint> other) {
  * BC < AC and the angle between BC and BA is less than 180 degrees.
  */
 void ResultPoint::orderBestPatterns(std::vector<Ref<ResultPoint> > &patterns) {
+    if(patterns.size() != 3)
+        return;
+
     // Find distances between pattern centers
     float zeroOneDistance = distance(patterns[0]->getX(), patterns[1]->getX(),patterns[0]->getY(), patterns[1]->getY());
     float oneTwoDistance = distance(patterns[1]->getX(), patterns[2]->getX(),patterns[1]->getY(), patterns[2]->getY());

@@ -1,6 +1,6 @@
 // -*- mode:c++; tab-width:2; indent-tabs-mode:nil; c-basic-offset:2 -*-
-#ifndef __FINDER_PATTERN_FINDER_H__
-#define __FINDER_PATTERN_FINDER_H__
+#ifndef ZXING_FINDER_PATTERN_FINDER_H
+#define ZXING_FINDER_PATTERN_FINDER_H
 
 /*
  *  FinderPatternFinder.h
@@ -69,6 +69,8 @@ protected:
   bool crossCheckDiagonal(int startI, int centerJ, int maxCount, int originalStateCountTotal) const;
   int *getCrossCheckStateCount() const;
 
+  static double squaredDistance(Ref<FinderPattern> a, Ref<FinderPattern> b);
+
 public:
   static float distance(Ref<ResultPoint> p1, Ref<ResultPoint> p2);
   FinderPatternFinder(Ref<BitMatrix> image, Ref<ResultPointCallback>const&);
@@ -77,4 +79,4 @@ public:
 }
 }
 
-#endif // __FINDER_PATTERN_FINDER_H__
+#endif // ZXING_FINDER_PATTERN_FINDER_H

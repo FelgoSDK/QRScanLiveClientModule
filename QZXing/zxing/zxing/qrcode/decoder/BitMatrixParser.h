@@ -1,5 +1,5 @@
-#ifndef __BIT_MATRIX_PARSER_H__
-#define __BIT_MATRIX_PARSER_H__
+#ifndef ZXING_MATRIX_PARSER_H
+#define ZXING_MATRIX_PARSER_H
 
 /*
  *  BitMatrixParser.h
@@ -33,7 +33,7 @@ namespace qrcode {
 class BitMatrixParser : public Counted {
 private:
   Ref<BitMatrix> bitMatrix_;
-  Version *parsedVersion_;
+  Ref<Version>parsedVersion_;
   Ref<FormatInformation> parsedFormatInfo_;
   bool mirror_;
 
@@ -42,8 +42,8 @@ private:
 public:
   BitMatrixParser(Ref<BitMatrix> bitMatrix);
   Ref<FormatInformation> readFormatInformation();
-  Version *readVersion();
-  ArrayRef<byte> readCodewords();
+  Ref<Version>readVersion();
+  ArrayRef<zxing::byte> readCodewords();
   void remask();
   void setMirror(boolean mirror);
   void mirror();
@@ -57,4 +57,4 @@ private:
 }
 }
 
-#endif // __BIT_MATRIX_PARSER_H__
+#endif // ZXING_MATRIX_PARSER_H

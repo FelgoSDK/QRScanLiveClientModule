@@ -48,13 +48,11 @@ namespace {
    * Start/end guard pattern.
    */
   const int START_END_PATTERN_[] = {1, 1, 1};
-  const int START_END_PATTERN_LEN = LEN(START_END_PATTERN_);
 
   /**
    * Pattern marking the middle of a UPC/EAN pattern, separating the two halves.
    */
   const int MIDDLE_PATTERN_[] = {1, 1, 1, 1, 1};
-  const int MIDDLE_PATTERN_LEN = LEN(MIDDLE_PATTERN_);
 
   /**
    * "Odd", or "L" patterns used to encode UPC/EAN digits.
@@ -71,7 +69,6 @@ namespace {
     {1, 2, 1, 3}, // 8
     {3, 1, 1, 2}  // 9
   };
-  const int L_PATTERNS_LEN = LEN(L_PATTERNS_);
 
   /**
    * As above but also including the "even", or "G" patterns used to encode UPC/EAN digits.
@@ -98,7 +95,6 @@ namespace {
     {3, 1, 2, 1}, // 18 reversed 8
     {2, 1, 1, 3}  // 19 reversed 9
   };
-  const int L_AND_G_PATTERNS_LEN = LEN(L_AND_G_PATTERNS_);
 }
 
 const int UPCEANReader::MAX_AVG_VARIANCE = (int)(PATTERN_MATCH_RESULT_SCALE_FACTOR * 0.48f);
@@ -118,13 +114,14 @@ UPCEANReader::L_AND_G_PATTERNS (VECTOR_INIT(L_AND_G_PATTERNS_));
 
 UPCEANReader::UPCEANReader() {}
 
-Ref<Result> UPCEANReader::decodeRow(int rowNumber, Ref<BitArray> row, zxing::DecodeHints /*hints*/) {
-  return decodeRow(rowNumber, row, findStartGuardPattern(row));
+Ref<Result> UPCEANReader::decodeRow(int rowNumber, Ref<BitArray> row, zxing::DecodeHints hints) {
+  return decodeRow(rowNumber, row, findStartGuardPattern(row), hints);
 }
 
 Ref<Result> UPCEANReader::decodeRow(int rowNumber,
                                     Ref<BitArray> row,
-                                    Range const& startGuardRange) {
+                                    Range const& startGuardRange,
+                                    zxing::DecodeHints hints) {
   string& result = decodeRowStringBuffer;
   result.clear();
   int endStart = decodeMiddle(row, startGuardRange, result);
@@ -153,11 +150,50 @@ Ref<Result> UPCEANReader::decodeRow(int rowNumber,
   float left = (float) (startGuardRange[1] + startGuardRange[0]) / 2.0f;
   float right = (float) (endRange[1] + endRange[0]) / 2.0f;
   BarcodeFormat format = getBarcodeFormat();
+
   ArrayRef< Ref<ResultPoint> > resultPoints(2);
-  resultPoints[0] = Ref<ResultPoint>(new OneDResultPoint(left, (float) rowNumber));
-  resultPoints[1] = Ref<ResultPoint>(new OneDResultPoint(right, (float) rowNumber));
-  Ref<Result> decodeResult (new Result(resultString, ArrayRef<byte>(), resultPoints, format));
-  // Java extension and man stuff
+  resultPoints[0] = Ref<ResultPoint>(new OneDResultPoint(left, static_cast<float> (rowNumber)));
+  resultPoints[1] = Ref<ResultPoint>(new OneDResultPoint(right, static_cast<float> (rowNumber)));
+
+  Ref<Result> decodeResult (new Result(resultString, ArrayRef<zxing::byte>(), resultPoints, format));
+  int extensionLength = 0;
+
+  try {
+    Ref<Result> extensionResult = extensionReader.decodeRow(rowNumber, row, endRange[1]);
+    if (extensionResult) {
+      decodeResult->getMetadata().put(ResultMetadata::UPC_EAN_EXTENSION, extensionResult->getText()->getText());
+      decodeResult->getMetadata().putAll(extensionResult->getMetadata());
+      extensionLength = extensionResult->getText()->length();
+
+      for (const Ref<ResultPoint>& resultPoint: extensionResult->getResultPoints()->values()) {
+        decodeResult->getResultPoints()->push_back(resultPoint);
+      }
+    }
+  } catch (NotFoundException const& /*nfe*/) {
+      // continue
+  }
+
+  std::set<int> allowedExtensions = hints.getAllowedEanExtensions();
+  if (allowedExtensions.size() > 0) {
+    bool valid = false;
+    for (int length: allowedExtensions) {
+      if (extensionLength == length) {
+        valid = true;
+        break;
+      }
+    }
+    if (!valid) {
+      throw NotFoundException();
+    }
+  }
+
+  if (format == BarcodeFormat::EAN_13 || format == BarcodeFormat::UPC_A) {
+    Ref<String> countryID = eanManSupport.lookupCountryIdentifier(resultString);
+    if (countryID) {
+      decodeResult->getMetadata().put(ResultMetadata::POSSIBLE_COUNTRY, countryID->getText());
+    }
+  }
+
   return decodeResult;
 }
 
@@ -206,7 +242,7 @@ UPCEANReader::Range UPCEANReader::findGuardPattern(Ref<BitArray> row,
     }
     std::cerr << std::endl;
   }
-  int patternLength = pattern.size();
+  int patternLength = int(pattern.size());
   int width = row->getSize();
   bool isWhite = whiteFirst;
   rowOffset = whiteFirst ? row->getNextUnset(rowOffset) : row->getNextSet(rowOffset);
@@ -249,7 +285,7 @@ int UPCEANReader::decodeDigit(Ref<BitArray> row,
   recordPattern(row, rowOffset, counters);
   int bestVariance = MAX_AVG_VARIANCE; // worst variance we'll accept
   int bestMatch = -1;
-  int max = patterns.size();
+  int max = int(patterns.size());
   for (int i = 0; i < max; i++) {
     int const* pattern (patterns[i]);
     int variance = patternMatchVariance(counters, pattern, MAX_INDIVIDUAL_VARIANCE);
@@ -281,7 +317,7 @@ bool UPCEANReader::checkChecksum(Ref<String> const& s) {
  */
 bool UPCEANReader::checkStandardUPCEANChecksum(Ref<String> const& s_) {
   std::string const& s (s_->getText());
-  int length = s.length();
+  int length = int(s.length());
   if (length == 0) {
     return false;
   }

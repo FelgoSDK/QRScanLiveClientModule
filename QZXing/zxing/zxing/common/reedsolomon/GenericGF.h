@@ -35,10 +35,13 @@ namespace zxing {
     std::vector<int> logTable;
     Ref<GenericGFPoly> zero;
     Ref<GenericGFPoly> one;
-    int size;
+    size_t size;
     int primitive;
     int generatorBase;
     bool initialized;
+
+    GenericGF(int primitive, size_t size, int b);
+    ~GenericGF();
     
     void initialize();
     void checkInit();
@@ -53,11 +56,9 @@ namespace zxing {
     static Ref<GenericGF> DATA_MATRIX_FIELD_256;
     static Ref<GenericGF> MAXICODE_FIELD_64;
     
-    GenericGF(int primitive, int size, int b);
-    
     Ref<GenericGFPoly> getZero();
     Ref<GenericGFPoly> getOne();
-    int getSize();
+    size_t getSize();
     int getGeneratorBase();
     Ref<GenericGFPoly> buildMonomial(int degree, int coefficient);
     

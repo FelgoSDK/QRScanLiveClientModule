@@ -1,5 +1,5 @@
-#ifndef __MULTI_FORMAT_READER_H__
-#define __MULTI_FORMAT_READER_H__
+#ifndef ZXING_MULTI_FORMAT_READER_H
+#define ZXING_MULTI_FORMAT_READER_H
 
 /*
  *  MultiFormatBarcodeReader.h
@@ -41,8 +41,10 @@ namespace zxing {
     Ref<Result> decode(Ref<BinaryBitmap> image, DecodeHints hints);
     Ref<Result> decodeWithState(Ref<BinaryBitmap> image);
     void setHints(DecodeHints hints);
+    void enableReaders(DecodeHints hints, bool allowAll = false);
     ~MultiFormatReader();
   };
 }
 
-#endif
+#endif // ZXING_MULTI_FORMAT_READER_H
+

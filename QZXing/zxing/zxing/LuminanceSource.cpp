@@ -52,12 +52,12 @@ Ref<zxing::LuminanceSource> LuminanceSource::rotateCounterClockwise45() const
 }
 
 LuminanceSource::operator std::string() const {
-  ArrayRef<byte> row;
+  ArrayRef<zxing::byte> row;
   std::ostringstream oss;
   for (int y = 0; y < getHeight(); y++) {
     row = getRow(y, row);
     for (int x = 0; x < getWidth(); x++) {
-      int luminance = row[x] & 0xFF;
+      int luminance = row[x];// & 0xFF;
       char c;
       if (luminance < 0x40) {
         c = '#';

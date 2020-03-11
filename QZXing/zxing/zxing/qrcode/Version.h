@@ -1,5 +1,5 @@
-#ifndef __VERSION_H__
-#define __VERSION_H__
+#ifndef ZXING_VERSION_H
+#define ZXING_VERSION_H
 
 /*
  *  Version.h
@@ -24,7 +24,6 @@
 #include <zxing/qrcode/ErrorCorrectionLevel.h>
 #include <zxing/ReaderException.h>
 #include <zxing/common/BitMatrix.h>
-#include <zxing/common/Counted.h>
 #include <vector>
 
 namespace zxing {
@@ -47,6 +46,7 @@ private:
 public:
   ECBlocks(int ecCodewordsPerBloc, ECB *ecBlocks);
   ECBlocks(int ecCodewordsPerBloc, ECB *ecBlocks1, ECB *ecBlocks2);
+  int numBlocks() const;
   int getECCodewordsPerBloc();
   int getTotalECCodewords();
   std::vector<ECB*>& getECBlocks();
@@ -83,4 +83,4 @@ public:
 }
 }
 
-#endif // __VERSION_H__
+#endif // ZXING_VERSION_H

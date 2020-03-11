@@ -137,18 +137,18 @@ void MatrixUtil::embedTypeInfo(const ErrorCorrectionLevel& ecLevel, int maskPatt
         // Type info bits at the left top corner. See 8.9 of JISX0510:2004 (p.46).
         int x1 = TYPE_INFO_COORDINATES[i][0];
         int y1 = TYPE_INFO_COORDINATES[i][1];
-        matrix.set(x1, y1, bit);
+        matrix.set(size_t(x1), size_t(y1), bit);
 
         if (i < 8) {
             // Right top corner.
-            int x2 = matrix.getWidth() - i - 1;
+            int x2 = int(matrix.getWidth()) - i - 1;
             int y2 = 8;
-            matrix.set(x2, y2, bit);
+            matrix.set(size_t(x2), size_t(y2), bit);
         } else {
             // Left bottom corner.
             int x2 = 8;
-            int y2 = matrix.getHeight() - 7 + (i - 8);
-            matrix.set(x2, y2, bit);
+            int y2 = int(matrix.getHeight()) - 7 + (i - 8);
+            matrix.set(size_t(x2), size_t(y2), bit);
         }
     }
 }
@@ -162,8 +162,8 @@ void MatrixUtil::maybeEmbedVersionInfo(const Version& version, ByteMatrix& matri
     makeVersionInfoBits(version, versionInfoBits);
 
     int bitIndex = 6 * 3 - 1;  // It will decrease from 17 to 0.
-    for (int i = 0; i < 6; ++i) {
-        for (int j = 0; j < 3; ++j) {
+    for (size_t i = 0; i < 6; ++i) {
+        for (size_t j = 0; j < 3; ++j) {
             // Place bits in LSB (least significant bit) to MSB order.
             boolean bit = versionInfoBits.get(bitIndex);
             bitIndex--;
@@ -180,18 +180,18 @@ void MatrixUtil::embedDataBits(const BitArray& dataBits, int maskPattern, ByteMa
     int bitIndex = 0;
     int direction = -1;
     // Start from the right bottom cell.
-    int x = matrix.getWidth() - 1;
-    int y = matrix.getHeight() - 1;
+    int x = int(matrix.getWidth()) - 1;
+    int y = int(matrix.getHeight()) - 1;
     while (x > 0) {
         // Skip the vertical timing pattern.
         if (x == 6) {
             x -= 1;
         }
-        while (y >= 0 && y < matrix.getHeight()) {
+        while (y >= 0 && y < int(matrix.getHeight())) {
             for (int i = 0; i < 2; ++i) {
                 int xx = x - i;
                 // Skip the cell if it's not empty.
-                if (!isEmpty(matrix.get(xx, y))) {
+                if (!isEmpty(matrix.get(size_t(xx), size_t(y)))) {
                     continue;
                 }
                 boolean bit;
@@ -208,7 +208,7 @@ void MatrixUtil::embedDataBits(const BitArray& dataBits, int maskPattern, ByteMa
                 if (maskPattern != -1 && MaskUtil::getDataMaskBit(maskPattern, xx, y)) {
                     bit = !bit;
                 }
-                matrix.set(xx, y, bit);
+                matrix.set(size_t(xx), size_t(y), bit);
             }
             y += direction;
         }
@@ -218,7 +218,7 @@ void MatrixUtil::embedDataBits(const BitArray& dataBits, int maskPattern, ByteMa
     }
     // All bits should be consumed.
     if (bitIndex != dataBits.getSize()) {
-        throw zxing::WriterException("Not all bits consumed: " + bitIndex + '/' + dataBits.getSize());
+        throw zxing::WriterException("Not all bits consumed");
     }
 }
 
@@ -269,7 +269,7 @@ void MatrixUtil::makeTypeInfoBits(const ErrorCorrectionLevel& ecLevel, int maskP
     bits.xor_(maskBits);
 
     if (bits.getSize() != 15) {  // Just in case.
-        throw WriterException("should not happen but we got: " + bits.getSize());
+        throw WriterException("makeTypeInfoBits() failed, should not happen");
     }
 }
 
@@ -282,7 +282,7 @@ void MatrixUtil::makeVersionInfoBits(const Version& version, BitArray& bits)
     bits.appendBits(bchCode, 12);
 
     if (bits.getSize() != 18) {  // Just in case.
-        throw WriterException("should not happen but we got: " + bits.getSize());
+        throw WriterException("makeVersionInfoBits() failed, should not happen");
     }
 }
 
@@ -291,14 +291,14 @@ void MatrixUtil::embedTimingPatterns(ByteMatrix& matrix)
     // -8 is for skipping position detection patterns (size 7), and two horizontal/vertical
     // separation patterns (size 1). Thus, 8 = 7 + 1.
     for (size_t i = 8; i < matrix.getWidth() - 8; ++i) {
-        int bit = (i + 1) % 2;
+        zxing::byte bit = (i + 1) % 2;
         // Horizontal line.
         if (isEmpty(matrix.get(i, 6))) {
-            matrix.set(i, 6, (byte)bit);
+            matrix.set(i, 6, bit);
         }
         // Vertical line.
         if (isEmpty(matrix.get(6, i))) {
-            matrix.set(6, i, (byte)bit);
+            matrix.set(6, i, bit);
         }
     }
 }
@@ -308,47 +308,47 @@ void MatrixUtil::embedDarkDotAtLeftBottomCorner(ByteMatrix& matrix)
     if (matrix.get(8, matrix.getHeight() - 8) == 0) {
         throw WriterException();
     }
-    matrix.set(8, matrix.getHeight() - 8, (byte)1);
+    matrix.set(8, matrix.getHeight() - 8, zxing::byte(1));
 }
 
-void MatrixUtil::embedHorizontalSeparationPattern(int xStart,
-                                                  int yStart,
+void MatrixUtil::embedHorizontalSeparationPattern(size_t xStart,
+                                                  size_t yStart,
                                                   ByteMatrix& matrix)
 {
-    for (int x = 0; x < 8; ++x) {
+    for (size_t x = 0; x < 8; ++x) {
         if (!isEmpty(matrix.get(xStart + x, yStart))) {
             throw WriterException();
         }
-        matrix.set(xStart + x, yStart, (byte)0);
+        matrix.set(size_t(xStart + x), size_t(yStart), zxing::byte(0));
     }
 }
 
-void MatrixUtil::embedVerticalSeparationPattern(int xStart,
-                                                int yStart,
+void MatrixUtil::embedVerticalSeparationPattern(size_t xStart,
+                                                size_t yStart,
                                                 ByteMatrix& matrix)
 {
-    for (int y = 0; y < 7; ++y) {
+    for (size_t y = 0; y < 7; ++y) {
         if (!isEmpty(matrix.get(xStart, yStart + y))) {
             throw WriterException();
         }
-        matrix.set(xStart, yStart + y, (byte)0);
+        matrix.set(xStart, yStart + y, zxing::byte(0));
     }
 }
 
-void MatrixUtil::embedPositionAdjustmentPattern(int xStart, int yStart, ByteMatrix& matrix)
+void MatrixUtil::embedPositionAdjustmentPattern(size_t xStart, size_t yStart, ByteMatrix& matrix)
 {
-    for (int y = 0; y < 5; ++y) {
-        for (int x = 0; x < 5; ++x) {
-            matrix.set(xStart + x, yStart + y, (byte)POSITION_ADJUSTMENT_PATTERN[y][x]);
+    for (size_t y = 0; y < 5; ++y) {
+        for (size_t x = 0; x < 5; ++x) {
+            matrix.set(xStart + x, yStart + y, zxing::byte(POSITION_ADJUSTMENT_PATTERN[y][x]));
         }
     }
 }
 
-void MatrixUtil::embedPositionDetectionPattern(int xStart, int yStart, ByteMatrix& matrix)
+void MatrixUtil::embedPositionDetectionPattern(size_t xStart, size_t yStart, ByteMatrix& matrix)
 {
-    for (int y = 0; y < 7; ++y) {
-        for (int x = 0; x < 7; ++x) {
-            matrix.set(xStart + x, yStart + y, (byte)POSITION_DETECTION_PATTERN[y][x]);
+    for (size_t y = 0; y < 7; ++y) {
+        for (size_t x = 0; x < 7; ++x) {
+            matrix.set(xStart + x, yStart + y, zxing::byte(POSITION_DETECTION_PATTERN[y][x]));
         }
     }
 }
@@ -356,7 +356,7 @@ void MatrixUtil::embedPositionDetectionPattern(int xStart, int yStart, ByteMatri
 void MatrixUtil::embedPositionDetectionPatternsAndSeparators(ByteMatrix& matrix)
 {
     // Embed three big squares at corners.
-    int pdpWidth = 7;//need to change this, old version: POSITION_DETECTION_PATTERN[0].length;
+    size_t pdpWidth = 7;//need to change this, old version: POSITION_DETECTION_PATTERN[0].length;
     // Left top corner.
     embedPositionDetectionPattern(0, 0, matrix);
     // Right top corner.
@@ -365,7 +365,7 @@ void MatrixUtil::embedPositionDetectionPatternsAndSeparators(ByteMatrix& matrix)
     embedPositionDetectionPattern(0, matrix.getWidth() - pdpWidth, matrix);
 
     // Embed horizontal separation patterns around the squares.
-    int hspWidth = 8;
+    size_t hspWidth = 8;
     // Left top corner.
     embedHorizontalSeparationPattern(0, hspWidth - 1, matrix);
     // Right top corner.
@@ -375,7 +375,7 @@ void MatrixUtil::embedPositionDetectionPatternsAndSeparators(ByteMatrix& matrix)
     embedHorizontalSeparationPattern(0, matrix.getWidth() - hspWidth, matrix);
 
     // Embed vertical separation patterns around the squares.
-    int vspSize = 7;
+    size_t vspSize = 7;
     // Left top corner.
     embedVerticalSeparationPattern(vspSize, 0, matrix);
     // Right top corner.
@@ -392,23 +392,23 @@ void MatrixUtil::maybeEmbedPositionAdjustmentPatterns(const Version& version, By
     }
     int index = version.getVersionNumber() - 1;
     const int *coordinates = POSITION_ADJUSTMENT_PATTERN_COORDINATE_TABLE[index];
-    int numCoordinates = 7; //POSITION_ADJUSTMENT_PATTERN_COORDINATE_TABLE[index].length; //need to change the constant 7
+    size_t numCoordinates = 7; //POSITION_ADJUSTMENT_PATTERN_COORDINATE_TABLE[index].length; //need to change the constant 7
 
-    for (int i = 0; i < numCoordinates; i++) {
+    for (size_t i = 0; i < numCoordinates; i++) {
         int y = coordinates[i];
         if(y < 0)
             continue;
 
-        for (int j = 0; j < numCoordinates; j++) {
+        for (size_t j = 0; j < numCoordinates; j++) {
             int x = coordinates[j];
             if (x < 0)
                 continue;
 
             // If the cell is unset, we embed the position adjustment pattern here.
-            if (isEmpty(matrix.get(x, y))) {
+            if (isEmpty(matrix.get(size_t(x), size_t(y)))) {
                 // -2 is necessary since the x/y coordinates point to the center of the pattern, not the
                 // left top corner.
-                embedPositionAdjustmentPattern(x - 2, y - 2, matrix);
+                embedPositionAdjustmentPattern(size_t(x) - 2, size_t(y) - 2, matrix);
             }
         }
     }

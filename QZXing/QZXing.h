@@ -18,8 +18,13 @@
 #define QZXING_H
 
 #include "QZXing_global.h"
+
 #include <QObject>
 #include <QImage>
+#include <QVariantList>
+#include <QElapsedTimer>
+
+#include <set>
 
 #if QT_VERSION >= 0x050000
     class QQmlEngine;
@@ -28,8 +33,13 @@
 // forward declaration
 namespace zxing {
 class MultiFormatReader;
+class ResultMetadata;
 }
 class ImageHandler;
+
+#ifdef ENABLE_ENCODER_GENERIC
+struct QZXingEncoderConfig;
+#endif // ENABLE_ENCODER_GENERIC
 
 /**
   * A class containing a very very small subset of the ZXing library.
@@ -38,7 +48,7 @@ class ImageHandler;
   * Anyone interested in using more technical stuff
   * from the ZXing library is welcomed to add/edit on free will.
   *
-  * Regarding DecoderFormat, by default all of those are enabled (except DataMatrix will is still not supported)
+  * Regarding DecoderFormat, by default all of those are enabled
   */
 class
         #ifndef DISABLE_LIBRARY_FEATURES
@@ -51,6 +61,7 @@ class
     Q_PROPERTY(int processingTime READ getProcessTimeOfLastDecoding)
     Q_PROPERTY(uint enabledDecoders READ getEnabledFormats WRITE setDecoder NOTIFY enabledFormatsChanged)
     Q_PROPERTY(bool tryHarder READ getTryHarder WRITE setTryHarder)
+    Q_PROPERTY(QVariantList allowedExtensions READ getAllowedExtensions WRITE setAllowedExtensions)
 
 public:
     /*
@@ -79,24 +90,47 @@ public:
     } ;
     typedef unsigned int DecoderFormatType;
 
-    QZXing(QObject *parent = NULL);
+    enum EncoderFormat {
+        EncoderFormat_INVALID,
+        EncoderFormat_QR_CODE
+    };
+
+    enum EncodeErrorCorrectionLevel {
+        EncodeErrorCorrectionLevel_L = 0,
+        EncodeErrorCorrectionLevel_M,
+        EncodeErrorCorrectionLevel_Q,
+        EncodeErrorCorrectionLevel_H
+    };
+
+    QZXing(QObject *parent = Q_NULLPTR);
     ~QZXing();
 
-    QZXing(DecoderFormat decodeHints, QObject *parent = NULL);
+    QZXing(DecoderFormat decodeHints, QObject *parent = Q_NULLPTR);
 
 #ifdef QZXING_QML
 
+#if QT_VERSION >= 0x040700
     static void registerQMLTypes();
+#endif //QT_VERSION >= Qt 4.7
 
-    static void registerQMLImageProvider(QQmlEngine& view);
+#if  QT_VERSION >= 0x050000
+    static void registerQMLImageProvider(QQmlEngine& engine);
+#endif //QT_VERSION >= Qt 5.0
 
 #endif //QZXING_QML
 
     void setTryHarder(bool tryHarder);
     bool getTryHarder();
+    void setAllowedExtensions(const QVariantList& extensions);
+    QVariantList getAllowedExtensions();
     static QString decoderFormatToString(int fmt);
     Q_INVOKABLE QString foundedFormat() const;
     Q_INVOKABLE QString charSet() const;
+
+    bool getLastDecodeOperationSucceded();
+
+private:
+    QVariantMap metadataToMap(const zxing::ResultMetadata& metadata);
 
 public slots:
     /**
@@ -146,10 +180,23 @@ public slots:
                               const int offsetX = 0, const int offsetY = 0,
                               const int width = 0, const int height = 0);
 
+#ifdef ENABLE_ENCODER_GENERIC
     /**
      * The main encoding function. Currently supports only Qr code encoding
      */
-    QImage encodeData(const QString& data);
+    static QImage encodeData(const QString &data,
+                             const QZXingEncoderConfig &encoderConfig);
+
+    /**
+     * Overloaded function of encodeData.
+     */
+    static QImage encodeData(const QString& data,
+                             const EncoderFormat encoderFormat = EncoderFormat_QR_CODE,
+                             const QSize encoderImageSize = QSize(240, 240),
+                             const EncodeErrorCorrectionLevel errorCorrectionLevel = EncodeErrorCorrectionLevel_L,
+                             const bool border = false,
+                             const bool transparent = false);
+#endif // ENABLE_ENCODER_GENERIC
 
     /**
       * Get the prossecing time in millisecond of the last decode operation.
@@ -177,6 +224,7 @@ signals:
     void tagFound(QString tag);
     void tagFoundAdvanced(const QString &tag, const QString &format, const QString &charSet) const;
     void tagFoundAdvanced(const QString &tag, const QString &format, const QString &charSet, const QRectF &rect) const;
+    void tagFoundAdvanced(const QString &tag, const QString &format, const QString &charSet, const QVariantMap &metadata) const;
     void error(QString msg);
 
 private:
@@ -187,12 +235,33 @@ private:
     QString foundedFmt;
     QString charSet_;
     bool tryHarder_;
+    bool lastDecodeOperationSucceded_;
+    std::set<int> allowedExtensions_;
 
     /**
       * If true, the decoding operation will take place at a different thread.
       */
     bool isThreaded;
 };
+
+#ifdef ENABLE_ENCODER_GENERIC
+typedef struct QZXingEncoderConfig
+{
+    QZXing::EncoderFormat format;
+    QSize imageSize;
+    QZXing::EncodeErrorCorrectionLevel errorCorrectionLevel;
+    bool border;
+    bool transparent;
+
+    QZXingEncoderConfig(const QZXing::EncoderFormat encoderFormat_ = QZXing::EncoderFormat_QR_CODE,
+                        const QSize encoderImageSize_ = QSize(240, 240),
+                        const QZXing::EncodeErrorCorrectionLevel errorCorrectionLevel_ = QZXing::EncodeErrorCorrectionLevel_L,
+                        const bool border_ = false,
+                        const bool transparent_ = false) :
+        format(encoderFormat_), imageSize(encoderImageSize_),
+        errorCorrectionLevel(errorCorrectionLevel_), border(border_), transparent(transparent_) {}
+} QZXingEncoderConfig;
+#endif // ENABLE_ENCODER_GENERIC
 
 #endif // QZXING_H
 
